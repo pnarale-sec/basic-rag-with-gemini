@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import os
 
 from embeddings import generate_embedding
-from retriever import retrieve_document
+from retriever import retrieve_documents
 from generator import generate_answer
 
 
@@ -32,52 +32,54 @@ documents = [
 
 
 # User question
-question = "Can I get my money back after 5 days?"
+question = "when python classes happens"
 
 
 def main():
 
     print("Generating document embeddings...")
 
-    # Generate embeddings for all documents
     document_vectors = []
 
     for document in documents:
-
         vector = generate_embedding(client, document)
-
         document_vectors.append(vector)
 
-
     print("Document embeddings generated successfully.")
-
 
     # Generate question embedding
     question_vector = generate_embedding(client, question)
 
-
-    # Retrieve the most relevant document
-    retrieved_document, similarity_score = retrieve_document(
+    # Retrieve top 3 relevant documents
+    retrieved_documents = retrieve_documents(
         question_vector,
         documents,
-        document_vectors
+        document_vectors,
+        top_k=3
     )
 
+    # Display retrieved documents
+    print("\nRetrieved Documents:")
 
-    print("\nRetrieved Document:")
-    print(retrieved_document)
+    if not retrieved_documents:
+        print("No relevant documents found.")
+        return
 
-    print("\nSimilarity Score:")
-    print(round(similarity_score, 3))
+    for item in retrieved_documents:
+        print("\nDocument:", item["document"])
+        print("Similarity:", item["score"])
 
+    # Combine retrieved documents into context
+    context = "\n".join(
+        item["document"] for item in retrieved_documents
+    )
 
     # Generate final answer
     answer = generate_answer(
         client,
         question,
-        retrieved_document
+        context
     )
-
 
     if answer:
         print("\nLLM Answer:")

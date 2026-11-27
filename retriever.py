@@ -1,43 +1,63 @@
-
 import numpy as np
 
 
 def cosine_similarity(a, b):
-    """
-    Calculate cosine similarity between two vectors.
-    """
+    a = np.array(a)
+    b = np.array(b)
 
-    norm_a = np.linalg.norm(a)
-    norm_b = np.linalg.norm(b)
+    denominator = np.linalg.norm(a) * np.linalg.norm(b)
 
-    if norm_a == 0 or norm_b == 0:
+    if denominator == 0:
         return 0.0
 
-    similarity = np.dot(a, b) / (norm_a * norm_b)
-
-    return float(similarity)
+    return np.dot(a, b) / denominator
 
 
-def retrieve_document(question_vector, documents, document_vectors):
-    """
-    Find the most relevant document using cosine similarity.
-    """
 
+def retrieve_documents(
+    question_vector,
+    documents,
+    document_vectors,
+    top_k=3,
+    threshold=0.60
+):
+    if top_k <= 0:
+        raise ValueError("top_k must be greater than 0")
+
+    if len(documents) != len(document_vectors):
+        raise ValueError("Documents and embeddings count must match")
+
+    if not documents:
+        return []
+
+    if not 0 <= threshold <= 1:
+        raise ValueError("Threshold must be between 0 and 1")
+
+    if len(question_vector) == 0:
+        raise ValueError("Question embedding cannot be empty")
+    
     scores = []
-
-    print("\nSimilarity Scores:")
-
-    for document, vector in zip(documents, document_vectors):
-
+    for vector in document_vectors:
         score = cosine_similarity(question_vector, vector)
-
         scores.append(score)
 
-        print(f"{score:.3f} - {document}")
+    # Sort indexes from highest score to lowest
+    sorted_indexes = np.argsort(scores)[::-1]
 
-    best_index = int(np.argmax(scores))
+    # Select top K indexes
+    top_k_indexes = sorted_indexes[:top_k]
 
-    retrieved_document = documents[best_index]
-    best_score = scores[best_index]
+    # Store relevant documents
+    retrieved_documents = []
 
-    return retrieved_document, best_score
+    for index in top_k_indexes:
+
+        if scores[index] >= threshold:
+
+            retrieved_documents.append({
+                "document": documents[index],
+                "score": scores[index]
+            })
+
+    # Return matching documents
+    return retrieved_documents
